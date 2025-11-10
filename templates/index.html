@@ -97,7 +97,7 @@
         }
 
         .flash-update {
-            animation: flash-bg 1.5s ease-out;
+            animation: flash-bg 2.0s ease-out;
         }
 
         .chart-container {
@@ -116,12 +116,12 @@
         }
 
         .column-left {
-            flex: 1 1 320px;
+            flex: 1 1 350px;
             /* Flex-grow, flex-shrink, basis */
         }
 
         .column-right {
-            flex: 2 1 500px;
+            flex: 2 1 550px;
         }
 
         h1,
@@ -197,6 +197,11 @@
         /* Interchange flow indicators */
         .flow-in {
             color: #28a745;
+            font-weight: bold;
+        }
+
+        .flow-out {
+            color: #dc3545;
             font-weight: bold;
         }
 
@@ -343,7 +348,12 @@
                                 <tr>
                                     <td>Fossil Fuel Generation</td>
                                     <td class="num">{{ "%d"|format(totals.tng['Fossil Fuel']) }} MW ({{
-                                        "%.2f"|format(totals.tng['Fossil Fuel'] / totals.tng.Total * 100) }}%)</td>
+                                        "%.2f"|format(fossil_fuel_percent) }}%)</td>
+                                </tr>
+                                <tr>
+                                    <td>Other (incl. Storage)</td>
+                                    <td class="num">{{ "%d"|format(totals.tng.Other) }} MW ({{
+                                        "%.2f"|format(energy_storage_percent) }}%)</td>
                                 </tr>
                                 <tr>
                                     <td>Alberta Internal Load (AIL)</td>
@@ -384,7 +394,7 @@
                                     {% if item.actual_flow > 0 %}
                                     <span class="flow-in">Import to AB</span>
                                     {% else %}
-                                    <span>Export from AB</span>
+                                    <span class="flow-out">Export from AB</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -399,7 +409,7 @@
                     <table id="table-{{ category.replace(' ', '-') }}">
                         <thead>
                             <tr>
-                                <th>Generation Type</th>
+                                <th>Type</th>
                                 <th class="num">Max Capability (MW)</th>
                                 <th class="num">Net Generation (MW)</th>
                                 <th class="num">Dispatched Reserve (MW)</th>
@@ -528,7 +538,7 @@
                                             label += ': ';
                                         }
                                         if (context.parsed !== null) {
-                                            label += context.parsed.toFixed(2) + ' MW';
+                                            label += context.parsed.toFixed(0) + ' MW';
                                         }
                                         return label;
                                     }
@@ -625,14 +635,14 @@
 
 
                 // Update Summary Box
-                const fossilPercent = data.totals.tng.Total > 0 ? (data.totals.tng['Fossil Fuel'] / data.totals.tng.Total * 100).toFixed(2) : '0.00';
                 document.getElementById('summary-box').innerHTML = `
                     <h2>System-Wide Summary</h2>
                     <table>
                         <tbody>
                             <tr><td>Total Net Generation</td><td class="num">${data.summary.total_net_generation} MW</td></tr>
                             <tr><td>Renewable Generation</td><td class="num">${data.totals.tng.Renewable.toFixed(0)} MW (${data.renewable_percent.toFixed(2)}%)</td></tr>
-                            <tr><td>Fossil Fuel Generation</td><td class="num">${data.totals.tng['Fossil Fuel'].toFixed(0)} MW (${fossilPercent}%)</td></tr>
+                            <tr><td>Fossil Fuel Generation</td><td class="num">${data.totals.tng['Fossil Fuel'].toFixed(0)} MW (${data.fossil_fuel_percent.toFixed(2)}%)</td></tr>
+                            <tr><td>Other (incl. Storage)</td><td class="num">${data.totals.tng.Other.toFixed(0)} MW (${data.energy_storage_percent.toFixed(2)}%)</td></tr>
                             <tr><td>Alberta Internal Load (AIL)</td><td class="num">${data.summary.alberta_internal_load} MW</td></tr>
                             <tr><td>Net Actual Interchange</td><td class="num">${data.summary.net_actual_interchange} MW</td></tr>
                             <tr><td>Last Updated (Source)</td><td class="num">${data.summary.effective_datetime_mpt}</td></tr>
@@ -655,6 +665,10 @@
                 let flowDirection = '<span>from AB</span>';
                 if (item.actual_flow > 0) {
                     flowDirection = '<span class="flow-in">to AB</span>';
+                }
+                else (item.actual_flow < 0)
+                {
+                    flowDirection = '<span class="flow-out">from AB</span>';
                 }
                 interchangeHtml += `
                     <tr>

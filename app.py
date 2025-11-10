@@ -94,18 +94,33 @@ def process_generation_data(data):
         except (ValueError, TypeError):
             continue
 
-    # Calculate percentages
+    # Calculate renewable percentage
     if totals["tng"]["Total"] > 0:
         renewable_percent = (totals["tng"]["Renewable"] / totals["tng"]["Total"]) * 100
     else:
         renewable_percent = 0
+
+    # Calculate fossil fuel percentage
+    if totals["tng"]["Total"] > 0:
+        fossil_fuel_percent = (totals["tng"]["Fossil Fuel"] / totals["tng"]["Total"]) * 100
+    else:
+        fossil_fuel_percent = 0
+
+    # Calculate energy storage percentage
+    if totals["tng"]["Total"] > 0:
+        energy_storage_percent = (totals["tng"]["Other"] / totals["tng"]["Total"]) * 100
+    else:
+        energy_storage_percent = 0
+
 
     # Structure all data for the template
     context = {
         "categories": categorized_data,
         "totals": totals,
         "summary": api_return_data,
-        "renewable_percent": renewable_percent
+        "renewable_percent": renewable_percent,
+        "fossil_fuel_percent": fossil_fuel_percent,
+        "energy_storage_percent": energy_storage_percent
     }
     return context
 
