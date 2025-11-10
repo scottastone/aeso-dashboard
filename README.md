@@ -2,8 +2,7 @@
 
 A modern, real-time web dashboard that fetches, processes, and visualizes current electricity supply and demand data from the Alberta Electric System Operator (AESO) public API.
 
-
-*(Pictured: The dashboard in dark mode)*
+![Dashboard Screenshot](./images/aeso-dashboard-darkmode.png)
 
 ## ✨ Features
 
@@ -36,13 +35,13 @@ There are two ways to run this project: using Docker (recommended for ease of us
 
 - **AESO API Key:** You must have an API key from AESO. You can register for one on the AESO API Portal.
 - **Docker & Docker Compose:** (Recommended) Install Docker and Docker Compose.
-- **Python 3:** (For local setup) Python 3.8+ is recommended. This uses Python 3.13.
+- **Python 3:** (For local setup) Python 3.8+ is recommended.
 
 ### 1. Clone the Repository
 
 ```bash
 git clone <your-repository-url>
-cd aeso-dashboard
+cd aeso-scrape
 ```
 
 ### 2. Add Your API Key
