@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AESO Current Supply</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --container-bg: #fff;
+            --text-color: #333;
+            --header-border: #e1e1e1;
+            --table-border: #ddd;
+            --table-header-bg: #f8f8f8;
+            --subtotal-bg: #f2f2f2;
+            --summary-box-bg: #eaf2f8;
+            --summary-box-border: #3498db;
+            --button-bg: #3498db;
+            --button-hover-bg: #2980b9;
+            --error-text: #c0392b;
+            --error-bg: #fbeae5;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 8px;
+            font-size: 14px;
+            /* Smaller base font size */
+        }
+
+        .container {
+            max-width: 960px;
+            margin: auto;
+            background: var(--container-bg);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--header-border);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header-controls h1 {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        /* Stylish Refresh Button */
+        #refresh-button {
+            background-color: var(--button-bg);
+            margin-right: 10px;
+            /* Space between buttons */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        #refresh-button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        #refresh-button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        /* CSS for the "nice" refresh effect */
+        @keyframes flash-bg {
+            from {
+                background-color: #eaf2f8;
+                /* Light blue start */
+            }
+
+            to {
+                background-color: var(--container-bg);
+                /* Fade to white */
+            }
+        }
+
+        .flash-update {
+            animation: flash-bg 1.5s ease-out;
+        }
+
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 250px;
+            /* Reduced height */
+            margin-bottom: 15px;
+        }
+
+        /* Two-column layout */
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .column-left {
+            flex: 1 1 320px;
+            /* Flex-grow, flex-shrink, basis */
+        }
+
+        .column-right {
+            flex: 2 1 500px;
+        }
+
+        h1,
+        h2 {
+            color: var(--text-color);
+            border-bottom: 2px solid var(--header-border);
+            padding-bottom: 8px;
+            font-size: 1.3em;
+            /* Slightly smaller headings */
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            /* Reduced padding in tables */
+            text-align: left;
+            border-bottom: 1px solid var(--table-border);
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            font-weight: 600;
+        }
+
+        td.num,
+        th.num {
+            text-align: right;
+        }
+
+        .summary-box {
+            background-color: var(--summary-box-bg);
+            border-left: 5px solid var(--summary-box-border);
+            padding: 10px 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        .summary-box p {
+            margin: 5px 0;
+            font-size: 1em;
+            /* Smaller summary text */
+        }
+
+        .error {
+            color: var(--error-text);
+            background-color: var(--error-bg);
+            border: 1px solid var(--error-text);
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        .subtotal td,
+        .grand-total td {
+            font-weight: bold;
+            background-color: var(--subtotal-bg);
+        }
+
+        /* Interchange flow indicators */
+        .flow-in {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .header-button-group {
+            display: flex;
+        }
+
+        /* Dark Mode Theme */
+        body.dark-mode {
+            --bg-color: #1a1a1a;
+            --container-bg: #2c2c2c;
+            --text-color: #e0e0e0;
+            --header-border: #444;
+            --table-border: #444;
+            --table-header-bg: #3a3a3a;
+            --subtotal-bg: #333;
+            --summary-box-bg: #3a3a3a;
+            --summary-box-border: #5fa8d3;
+            --button-bg: #5fa8d3;
+            --button-hover-bg: #4a8db3;
+            --error-text: #ff8a80;
+            --error-bg: #4d2a28;
+        }
+
+        body.dark-mode .flash-update {
+            animation: dark-flash-bg 1.5s ease-out;
+        }
+
+        @keyframes dark-flash-bg {
+            from {
+                /* A more subtle, darker blue for a less jarring flash */
+                background-color: #3a4a5f;
+            }
+
+            to {
+                background-color: var(--container-bg);
+            }
+        }
+
+        /* Settings Dropdown Menu */
+        .settings-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        #settings-button {
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        #settings-button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        .settings-dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: var(--container-bg);
+            min-width: 220px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            border-radius: 5px;
+            padding: 12px 16px;
+            border: 1px solid var(--table-border);
+        }
+
+        .settings-dropdown-content .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .show {
+            display: block;
+        }
+    </style>
+    <!-- Include Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header-controls">
+            <h1>AESO Current Supply & Demand</h1>
+            <div class="header-button-group">
+                <button id="refresh-button" onclick="updateData()">Force Refresh</button>
+                <div class="settings-menu">
+                    <button id="settings-button">⚙️ Settings</button>
+                    <div id="settings-dropdown" class="settings-dropdown-content">
+                        <div class="setting-item">
+                            <label for="auto-refresh-toggle">Auto-Refresh</label>
+                            <input type="checkbox" id="auto-refresh-toggle" checked>
+                        </div>
+                        <div class="setting-item">
+                            <label for="refresh-interval">Interval (s):</label>
+                            <input type="number" id="refresh-interval" value="15" min="5" style="width: 50px;">
+                        </div>
+                        <div class="setting-item">
+                            <label>Dark Mode</label>
+                            <button id="dark-mode-toggle">Toggle</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="error">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% else %}
+        <div id="data-container">
+            <div class="main-content">
+                <div class="column-left">
+                    <!-- Chart Section -->
+                    <h2>Current Generation Mix (TNG)</h2>
+                    <div class="chart-container">
+                        <canvas id="generationMixChart"></canvas>
+                    </div>
+
+                    <!-- System-wide Summary -->
+                    <div id="summary-box" class="summary-box">
+                        <h2>System-Wide Summary</h2>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>Total Net Generation</td>
+                                    <td class="num">{{ summary.total_net_generation }} MW</td>
+                                </tr>
+                                <tr>
+                                    <td>Renewable Generation</td>
+                                    <td class="num">{{ "%d"|format(totals.tng.Renewable) }} MW ({{
+                                        "%.2f"|format(renewable_percent) }}%)</td>
+                                </tr>
+                                <tr>
+                                    <td>Fossil Fuel Generation</td>
+                                    <td class="num">{{ "%d"|format(totals.tng['Fossil Fuel']) }} MW ({{
+                                        "%.2f"|format(totals.tng['Fossil Fuel'] / totals.tng.Total * 100) }}%)</td>
+                                </tr>
+                                <tr>
+                                    <td>Alberta Internal Load (AIL)</td>
+                                    <td class="num">{{ summary.alberta_internal_load }} MW</td>
+                                </tr>
+                                <tr>
+                                    <td>Net Actual Interchange</td>
+                                    <td class="num">{{ summary.net_actual_interchange }} MW</td>
+                                </tr>
+                                <tr>
+                                    <td>Last Updated (Source)</td>
+                                    <td class="num">{{ summary.effective_datetime_mpt }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Last Refreshed (Page)</td>
+                                    <td class="num"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Interchange Table -->
+                    <h2>Interchange with Other Grids</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Connection</th>
+                                <th class="num">Actual Flow (MW)</th>
+                                <th>Direction</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interchange-table-body">
+                            {% for item in summary.interchange_list %}
+                            <tr>
+                                <td>{{ item.path }}</td>
+                                <td class="num">{{ item.actual_flow }}</td>
+                                <td>
+                                    {% if item.actual_flow > 0 %}
+                                    <span class="flow-in">Import to AB</span>
+                                    {% else %}
+                                    <span>Export from AB</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="column-right">
+                    <!-- Generation Tables -->
+                    {% for category, items in categories.items() %}
+                    <h2>{{ category }}</h2>
+                    <table id="table-{{ category.replace(' ', '-') }}">
+                        <thead>
+                            <tr>
+                                <th>Generation Type</th>
+                                <th class="num">Max Capability (MW)</th>
+                                <th class="num">Net Generation (MW)</th>
+                                <th class="num">Dispatched Reserve (MW)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body-{{ category.replace(' ', '-') }}">
+                            {% for item in items %}
+                            <tr>
+                                <td>{{ item.fuel_type }}</td>
+                                <td class="num">{{ item.aggregated_maximum_capability }}</td>
+                                <td class="num">{{ item.aggregated_net_generation }}</td>
+                                <td class="num">{{ item.aggregated_dispatched_contingency_reserve }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4">No data available for this category.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="subtotal" id="subtotal-{{ category.replace(' ', '-') }}">
+                                <td>SUBTOTAL</td>
+                                <td class="num">{{ totals.mc[category]|round(0)|int }}</td>
+                                <td class="num">{{ totals.tng[category]|round(0)|int }}</td>
+                                <td class="num">{{ totals.dcr[category]|round(0)|int }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    {% endfor %}
+
+                    <!-- Grand Totals Table -->
+                    <h2>Overall Totals</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="num">Total Max Capability (MW)</th>
+                                <th class="num">Total Net Generation (MW)</th>
+                                <th class="num">Total Dispatched Reserve (MW)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="grand-total" id="grand-total-row">
+                                <td>GRAND TOTAL</td>
+                                <td class="num">{{ totals.mc.Total|round(0)|int }}</td>
+                                <td class="num">{{ totals.tng.Total|round(0)|int }}</td>
+                                <td class="num">{{ totals.dcr.Total|round(0)|int }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <p>Data provided by AESO.</p>
+        </div>
+    </div>
+</body>
+<script>
+    // This script is already set up for a non-jarring auto-refresh every 15 seconds.
+    // Only run the script if the data container exists (i.e., no initial error)
+    if (document.getElementById('data-container')) {
+        const REFRESH_INTERVAL_MS = 15000; // 15 seconds
+        let generationChart, refreshIntervalId;
+        const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+        const intervalInput = document.getElementById('refresh-interval');
+
+        function createOrUpdateChart(data) {
+            const ctx = document.getElementById('generationMixChart').getContext('2d');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+
+            // Define color palettes for light and dark modes
+            const lightModeColors = {
+                bg: ['rgba(40, 167, 69, 0.7)', 'rgba(52, 58, 64, 0.7)', 'rgba(255, 193, 7, 0.7)'],
+                border: ['#28a745', '#343a40', '#ffc107']
+            };
+            const darkModeColors = {
+                bg: ['rgba(46, 204, 113, 0.7)', 'rgba(149, 165, 166, 0.7)', 'rgba(241, 196, 15, 0.7)'],
+                border: ['#2ecc71', '#95a5a6', '#f1c40f']
+            };
+
+            const activeColors = isDarkMode ? darkModeColors : lightModeColors;
+            const fontColor = isDarkMode ? '#e0e0e0' : '#333';
+
+            const chartData = {
+                labels: ['Renewable', 'Fossil Fuel', 'Other'],
+                datasets: [{
+                    label: 'Net Generation (MW)',
+                    data: [
+                        data.totals.tng.Renewable,
+                        data.totals.tng['Fossil Fuel'],
+                        data.totals.tng.Other
+                    ],
+                    backgroundColor: activeColors.bg,
+                    borderColor: activeColors.border,
+                    borderWidth: 1
+                }]
+            };
+
+            if (generationChart) {
+                // If chart exists, update its data
+                generationChart.data.datasets[0].data = chartData.datasets[0].data;
+                generationChart.update();
+            } else {
+                // Otherwise, create a new chart
+                generationChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: fontColor // Set legend font color
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed !== null) {
+                                            label += context.parsed.toFixed(2) + ' MW';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        /**
+         * Formats a number to remove trailing .00 but keeps other decimals.
+         * @param {number | string} num The number to format.
+         * @returns {string} The formatted number as a string.
+         */
+        function formatNumber(num) {
+            const number = parseFloat(num);
+            // Check if the number is an integer after rounding to avoid floating point issues
+            if (Math.round(number) === number) {
+                return Math.round(number).toString();
+            }
+            // Otherwise, show two decimal places
+            return Number.isInteger(number) ? number.toString() : number.toFixed(2);
+        }
+
+
+        async function updateData() {
+            try {
+                const response = await fetch('/api/data');
+                if (!response.ok) {
+                    // Disable button on error
+                    const refreshButton = document.getElementById('refresh-button');
+                    if (refreshButton) refreshButton.disabled = true;
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('data-container').innerHTML = `<div class="error"><strong>Error updating data:</strong> ${data.error}</div>`;
+                    return;
+                }
+
+                // Add a visual flash to indicate the update
+                const dataContainer = document.getElementById('data-container');
+                dataContainer.classList.remove('flash-update');
+                // Use a trick to re-trigger the animation
+                void dataContainer.offsetWidth;
+                dataContainer.classList.add('flash-update');
+
+                // Update Chart
+                createOrUpdateChart(data);
+
+                // --- Update Generation Tables ---
+                for (const category in data.categories) {
+                    const items = data.categories[category];
+                    const tableBodyId = `table-body-${category.replace(' ', '-')}`;
+                    const tableBody = document.getElementById(tableBodyId);
+
+                    let tableHtml = '';
+                    if (items.length > 0) {
+                        items.forEach(item => {
+                            tableHtml += `
+                                <tr>
+                                    <td>${item.fuel_type}</td>
+                                    <td class="num">${item.aggregated_maximum_capability}</td>
+                                    <td class="num">${item.aggregated_net_generation}</td>
+                                    <td class="num">${item.aggregated_dispatched_contingency_reserve}</td>
+                                </tr>`;
+                        });
+                    } else {
+                        tableHtml = '<tr><td colspan="4">No data available for this category.</td></tr>';
+                    }
+                    tableBody.innerHTML = tableHtml;
+
+                    // Update subtotals
+                    const subtotalRowId = `subtotal-${category.replace(' ', '-')}`;
+                    document.getElementById(subtotalRowId).innerHTML = `
+                        <td>SUBTOTAL</td>
+                        <td class="num">${formatNumber(data.totals.mc[category])}</td>
+                        <td class="num">${formatNumber(data.totals.tng[category])}</td>
+                        <td class="num">${formatNumber(data.totals.dcr[category])}</td>`;
+                }
+
+                // --- Update Grand Total ---
+                document.getElementById('grand-total-row').innerHTML = `
+                    <td>GRAND TOTAL</td>
+                    <td class="num">${formatNumber(data.totals.mc.Total)}</td>
+                    <td class="num">${formatNumber(data.totals.tng.Total)}</td>
+                    <td class="num">${formatNumber(data.totals.dcr.Total)}</td>`;
+
+                // --- Update Interchange Table ---
+                updateInterchangeTable(data.summary.interchange_list);
+
+
+                // Update Summary Box
+                const fossilPercent = data.totals.tng.Total > 0 ? (data.totals.tng['Fossil Fuel'] / data.totals.tng.Total * 100).toFixed(2) : '0.00';
+                document.getElementById('summary-box').innerHTML = `
+                    <h2>System-Wide Summary</h2>
+                    <table>
+                        <tbody>
+                            <tr><td>Total Net Generation</td><td class="num">${data.summary.total_net_generation} MW</td></tr>
+                            <tr><td>Renewable Generation</td><td class="num">${data.totals.tng.Renewable.toFixed(0)} MW (${data.renewable_percent.toFixed(2)}%)</td></tr>
+                            <tr><td>Fossil Fuel Generation</td><td class="num">${data.totals.tng['Fossil Fuel'].toFixed(0)} MW (${fossilPercent}%)</td></tr>
+                            <tr><td>Alberta Internal Load (AIL)</td><td class="num">${data.summary.alberta_internal_load} MW</td></tr>
+                            <tr><td>Net Actual Interchange</td><td class="num">${data.summary.net_actual_interchange} MW</td></tr>
+                            <tr><td>Last Updated (Source)</td><td class="num">${data.summary.effective_datetime_mpt}</td></tr>
+                            <tr><td>Last Refreshed (Page)</td><td class="num">${new Date().toLocaleTimeString()}</td></tr>
+                        </tbody>
+                    </table>
+                `;
+
+                console.log('Data updated successfully at ' + new Date().toLocaleTimeString());
+
+            } catch (error) {
+                console.error("Failed to fetch and update data:", error);
+            }
+        }
+
+        function updateInterchangeTable(interchangeList) {
+            const interchangeBody = document.getElementById('interchange-table-body');
+            let interchangeHtml = '';
+            interchangeList.forEach(item => {
+                let flowDirection = '<span>from AB</span>';
+                if (item.actual_flow > 0) {
+                    flowDirection = '<span class="flow-in">to AB</span>';
+                }
+                interchangeHtml += `
+                    <tr>
+                        <td>${item.path}</td>
+                        <td class="num">${item.actual_flow}</td>
+                        <td>${flowDirection}</td>
+                    </tr>`;
+            });
+            interchangeBody.innerHTML = interchangeHtml;
+        }
+
+        // Initial data load for chart
+        fetch('/api/data')
+            .then(res => res.json())
+            .then(initialData => {
+                if (!initialData.error) {
+                    createOrUpdateChart(initialData);
+                }
+            });
+
+        // --- Settings Logic ---
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const settingsButton = document.getElementById('settings-button');
+
+        // Dark Mode
+        function setDarkMode(isDark) {
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+            }
+            // Force chart to redraw with new theme colors
+            if (generationChart) generationChart.destroy();
+            generationChart = null;
+            updateData();
+        }
+
+        darkModeToggle.addEventListener('click', () => {
+            setDarkMode(!document.body.classList.contains('dark-mode'));
+        });
+
+        // Auto-Refresh
+        function stopAutoRefresh() {
+            if (refreshIntervalId) clearInterval(refreshIntervalId);
+        }
+
+        function startAutoRefresh() {
+            stopAutoRefresh(); // Stop any existing timer
+            const intervalSeconds = parseInt(intervalInput.value, 10);
+            if (autoRefreshToggle.checked && intervalSeconds >= 5) {
+                localStorage.setItem('refreshInterval', intervalSeconds);
+                refreshIntervalId = setInterval(updateData, intervalSeconds * 1000);
+            }
+        }
+
+        autoRefreshToggle.addEventListener('change', () => {
+            localStorage.setItem('autoRefreshEnabled', autoRefreshToggle.checked);
+            if (autoRefreshToggle.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+
+        intervalInput.addEventListener('change', startAutoRefresh);
+
+        // --- Initialize Settings from localStorage ---
+        if (localStorage.getItem('theme') === 'dark') {
+            setDarkMode(true);
+        }
+        if (localStorage.getItem('autoRefreshEnabled') === 'false') {
+            autoRefreshToggle.checked = false;
+        }
+        intervalInput.value = localStorage.getItem('refreshInterval') || 15;
+        startAutoRefresh(); // Start the timer on page load based on saved settings
+
+        // Dropdown Menu Logic
+        settingsButton.addEventListener('click', function () {
+            document.getElementById('settings-dropdown').classList.toggle('show');
+        });
+
+        // Close the dropdown if the user clicks outside of it
+        window.onclick = function (event) {
+            if (!event.target.matches('#settings-button') && !event.target.closest('.settings-menu')) {
+                document.getElementById('settings-dropdown').classList.remove('show');
+            }
+        }
+    }
+</script>
+
+</html>

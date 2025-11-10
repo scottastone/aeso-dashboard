@@ -1,0 +1,9 @@
+services:
+  web:
+    build: .
+    container_name: aeso-scrape-web
+    ports:
+      - "2376:2376"
+    volumes:
+      - .:/app
+    restart: unless-stopped
