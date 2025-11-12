@@ -392,9 +392,9 @@
                                 <td class="num">{{ item.actual_flow }}</td>
                                 <td>
                                     {% if item.actual_flow > 0 %}
-                                    <span class="flow-in">Import to AB</span>
-                                    {% else %}
-                                    <span class="flow-out">Export from AB</span>
+                                    <span class="flow-out">from AB</span>
+                                    {% elif item.actual_flow < 0 %}
+                                    <span class="flow-in">to AB</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -662,11 +662,11 @@
             const interchangeBody = document.getElementById('interchange-table-body');
             let interchangeHtml = '';
             interchangeList.forEach(item => {
-                let flowDirection = '<span>from AB</span>';
-                if (item.actual_flow > 0) {
+                let flowDirection = '<span>-</span>'; // Default for zero flow
+                if (item.actual_flow < 0) {
                     flowDirection = '<span class="flow-in">to AB</span>';
                 }
-                else (item.actual_flow < 0)
+                else if (item.actual_flow > 0)
                 {
                     flowDirection = '<span class="flow-out">from AB</span>';
                 }
